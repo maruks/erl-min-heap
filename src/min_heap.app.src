@@ -1,0 +1,14 @@
+{application, min_heap,
+ [
+  {description, "An Erlang min_heap library"},
+  {vsn, "1"},
+  {modules, [
+             splay_heap
+            ]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]}.
