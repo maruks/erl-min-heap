@@ -1,5 +1,5 @@
 -module(splay_heap_tests).
--import(splay_heap,[empty/1,from_list/2,find_min/1,delete_min/1,insert/2,integer_min_heap/1]).
+-import(splay_heap,[empty/1,from_list/2,find_min/1,delete_min/1,insert/2,integer_min_heap/1,integer_max_heap/1]).
 
 -include_lib("eqc/include/eqc.hrl").
 -include_lib("eunit/include/eunit.hrl").
@@ -26,3 +26,11 @@ heap_sort_test_() ->
 
 min_elem_test_() ->
     {"min_elem_test", {timeout, 10, ?_assert(eqc:quickcheck(?MODULE:min_elem_prop()))}}.
+
+% max heap
+
+max_elem_prop() ->
+    ?FORALL(Xs, non_empty(list(int())), find_min(integer_max_heap(Xs)) == lists:max(Xs)).
+
+max_elem_test_() ->
+    {"max_elem_test", {timeout, 10, ?_assert(eqc:quickcheck(?MODULE:max_elem_prop()))}}.

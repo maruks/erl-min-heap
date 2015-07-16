@@ -2,7 +2,7 @@
 
 %% persistent splay heap
 
--export([empty/1,from_list/2,find_min/1,delete_min/1,insert/2,integer_min_heap/1]).
+-export([empty/1,from_list/2,find_min/1,delete_min/1,insert/2,integer_min_heap/1,integer_max_heap/1]).
 
 %% types
 
@@ -47,6 +47,11 @@ delete_min({CmpFn,Root}) ->
 % creates integer min heap
 integer_min_heap(Xs) ->
     from_list(fun(A,B) -> A=<B end,Xs).
+
+% creates integer max heap
+integer_max_heap(Xs) ->
+    from_list(fun(A,B) -> A=<B end,Xs).
+
 
 %% Internals
 
