@@ -2,7 +2,7 @@
 
 %% persistent splay heap
 
--export([empty/1,from_list/2,find_min/1,delete_min/1,insert/2,integer_min_heap/1,integer_max_heap/1]).
+-export([empty/1,from_list/2,find_min/1,delete_min/1,insert/2,min_heap/1,max_heap/1,to_list/1]).
 
 %% types
 
@@ -17,10 +17,12 @@
 
 -spec empty(cmp_fn()) -> splay_heap().
 -spec from_list(cmp_fn(), [elem()]) -> splay_heap().
+-spec to_list(splay_heap()) -> [elem()].
 -spec find_min(splay_heap()) -> elem().
 -spec insert(elem(),splay_heap()) -> splay_heap().
 -spec delete_min(splay_heap()) -> splay_heap().
--spec integer_min_heap([integer()]) -> splay_heap().
+-spec min_heap([integer()]) -> splay_heap().
+-spec max_heap([integer()]) -> splay_heap().
 
 %% API
 
@@ -31,6 +33,12 @@ empty(CmpFn) ->
 % creates heap from list
 from_list(CmpFn, Xs) ->
     lists:foldl(fun insert/2, empty(CmpFn), Xs).
+
+% returns all elements as list
+to_list({CmpFn, {L, E, R}}) ->
+    to_list({CmpFn,L}) ++ [E] ++ to_list({CmpFn,R});
+to_list({_, empty}) ->
+    [].
 
 % finds minimum element
 find_min({_,Root}) ->
@@ -44,14 +52,13 @@ insert(E, {CmpFn,Root}) ->
 delete_min({CmpFn,Root}) ->
     {CmpFn, delete_min_(Root)}.
 
-% creates integer min heap
-integer_min_heap(Xs) ->
+% creates min heap
+min_heap(Xs) ->
     from_list(fun(A,B) -> A=<B end,Xs).
 
-% creates integer max heap
-integer_max_heap(Xs) ->
-    from_list(fun(A,B) -> A=<B end,Xs).
-
+% creates max heap
+max_heap(Xs) ->
+    from_list(fun(A,B) -> A>=B end,Xs).
 
 %% Internals
 
@@ -78,7 +85,8 @@ delete_min_({{L1, E1, R1}, E2, R2}) ->
 partition2(_, N = {_L, _E, empty}, _, true) ->
     {N, empty};
 partition2(CmpFn, {L, E, {L2, E2, R2}}, Pivot, true) ->
-    if E2 =< Pivot ->
+    LT = CmpFn(E2, Pivot),
+    if LT ->
 	    {Small, Big} = partition(CmpFn, Pivot, R2),
 	    {{{L, E, L2}, E2, Small}, Big};
        true ->
@@ -88,7 +96,8 @@ partition2(CmpFn, {L, E, {L2, E2, R2}}, Pivot, true) ->
 partition2(_ , N = {empty, _E, _R}, _, false) ->
     {empty, N};
 partition2(CmpFn, {{L2, E2, R2}, E, R}, Pivot, false) ->
-    if E2 =< Pivot ->
+    LT = CmpFn(E2, Pivot),
+    if LT ->
 	    {Small, Big} = partition(CmpFn, Pivot, R2),
 	    {{L2, E2, Small},{Big, E, R}};
        true ->
@@ -99,4 +108,4 @@ partition2(CmpFn, {{L2, E2, R2}, E, R}, Pivot, false) ->
 partition(_, _Pivot, empty) ->
     {empty, empty};
 partition(CmpFn, Pivot, N = {_L, E, _R}) ->
-    partition2(CmpFn, N, Pivot, E =< Pivot).
+    partition2(CmpFn, N, Pivot, CmpFn(E, Pivot)).
