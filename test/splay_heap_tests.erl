@@ -15,19 +15,14 @@ heap_sort(Acc, H = {_,_}) ->
     E = find_min(H),
     heap_sort([E|Acc],delete_min(H)).
 
-min_elem_prop() ->
+prop_min_elem() ->
     ?FORALL(Xs, non_empty(list(int())), find_min(min_heap(Xs)) == lists:min(Xs)).
 
-heap_sort_prop() ->
+prop_heap_sort() ->
     ?FORALL(Xs, list(int()), heap_sort(min_heap(Xs)) == lists:sort(Xs)).
 
-max_elem_prop() ->
+prop_max_elem() ->
     ?FORALL(Xs, non_empty(list(int())), find_min(max_heap(Xs)) == lists:max(Xs)).
-
-qc_test() ->
-    ?assert(eqc:quickcheck(?MODULE:heap_sort_prop())),
-    ?assert(eqc:quickcheck(?MODULE:min_elem_prop())),
-    ?assert(eqc:quickcheck(?MODULE:max_elem_prop())).
 
 find_min_should_return_the_minimum_tuple_from_the_heap_test() ->
     Xs = [{foo, 3}, {bar, 2}, {lol, 4}],
@@ -73,19 +68,13 @@ to_list_should_return_all_elements_of_heap_test() ->
     ?assertEqual([1,2,3,4], to_list(H)).
 
 heap_sort_should_return_a_sorted_list_with_the_elements_of_the_heap_test() ->
-%   Given
     Ilist = [3,2,1],
     H = min_heap(Ilist),
-%   When
     Res = heap_sort(H),
-%   Then
     ?assertEqual([1,2,3], Res).
 
 to_list_should_return_a_sorted_list_with_the_elements_of_the_heap_test() ->
-%   Given
     Ilist = [3,2,1,3,4,9],
     H = min_heap(Ilist),
-%   When
     Res = to_list(H),
-%   Then
     ?assertEqual(lists:sort(Ilist), Res).
