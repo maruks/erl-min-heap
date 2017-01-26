@@ -2,7 +2,7 @@
 
 %% persistent splay heap
 
--export([empty/1,from_list/2,find_min/1,delete_min/1,insert/2,min_heap/1,max_heap/1,to_list/1]).
+-export([empty/1,from_list/2,find_min/1,delete_min/1,insert/2,min_heap/1,max_heap/1,to_list/1,heap_size/1,is_empty/1]).
 
 %% types
 
@@ -13,7 +13,7 @@
 
 -type cmp_fn() :: fun((elem(),elem())-> atom()).
 
--type splay_heap() :: {cmp_fn(), tree_node()}.
+-type splay_heap() :: {cmp_fn(), integer(), tree_node()}.
 
 -spec empty(cmp_fn()) -> splay_heap().
 -spec from_list(cmp_fn(), [elem()]) -> splay_heap().
@@ -28,29 +28,34 @@
 
 % returns empty heap with specified comparison function
 empty(CmpFn) ->
-    {CmpFn, empty}.
+    {CmpFn, 0, empty}.
 
 % creates heap from list
 from_list(CmpFn, Xs) ->
     lists:foldl(fun insert/2, empty(CmpFn), Xs).
 
 % returns all elements as list
-to_list({CmpFn, {L, E, R}}) ->
-    to_list({CmpFn,L}) ++ [E] ++ to_list({CmpFn,R});
-to_list({_, empty}) ->
-    [].
+to_list({_, _, Root}) ->
+    to_list_(Root).
 
 % finds minimum element
-find_min({_,Root}) ->
+find_min({_, _, Root}) ->
     find_min_(Root).
 
 % inserts element into heap
-insert(E, {CmpFn,Root}) ->
-    {CmpFn, insert_(E, CmpFn, Root)}.
+insert(E, {CmpFn, Size, Root}) ->
+    {CmpFn, Size + 1, insert_(E, CmpFn, Root)}.
+
+% returns heap size
+heap_size({_, Size, _}) ->
+    Size.
+
+is_empty({_, Size, _}) ->
+    Size =:= 0.
 
 % deletes min element
-delete_min({CmpFn,Root}) ->
-    {CmpFn, delete_min_(Root)}.
+delete_min({CmpFn, Size, Root}) ->
+    {CmpFn, Size - 1, delete_min_(Root)}.
 
 % creates min heap
 min_heap(Xs) ->
@@ -72,6 +77,11 @@ find_min_({empty, E, _R}) ->
     E;
 find_min_({L , _E, _R}) ->
     find_min_(L).
+
+to_list_({L, E, R}) ->
+    to_list_(L) ++ [E] ++ to_list_(R);
+to_list_(empty) ->
+    [].
 
 delete_min_(empty) ->
     throw(empty_heap);

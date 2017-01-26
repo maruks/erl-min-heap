@@ -1,5 +1,5 @@
 -module(splay_heap_tests).
--import(splay_heap,[empty/1,from_list/2,find_min/1,delete_min/1,insert/2,min_heap/1,max_heap/1,to_list/1]).
+-import(splay_heap,[empty/1,from_list/2,find_min/1,delete_min/1,insert/2,min_heap/1,max_heap/1,to_list/1,heap_size/1,is_empty/1]).
 
 -include_lib("eqc/include/eqc.hrl").
 -include_lib("eunit/include/eunit.hrl").
@@ -9,11 +9,12 @@
 heap_sort(H) ->
     lists:reverse(heap_sort([],H)).
 
-heap_sort(Acc, {_,empty}) ->
-    Acc;
-heap_sort(Acc, H = {_,_}) ->
-    E = find_min(H),
-    heap_sort([E|Acc],delete_min(H)).
+heap_sort(Acc, Heap) ->
+    case is_empty(Heap) of
+	true -> Acc;
+	false -> E = find_min(Heap),
+		heap_sort([E|Acc],delete_min(Heap))
+    end.
 
 prop_min_elem() ->
     ?FORALL(Xs, non_empty(list(int())), find_min(min_heap(Xs)) == lists:min(Xs)).
@@ -32,10 +33,14 @@ find_min_should_return_the_minimum_tuple_from_the_heap_test() ->
 
 delete_min_from_empty_heap_should_throw_empty_heap_error_test() ->
     H = empty(fun(A,B) -> A<B end),
+    ?assertEqual(0, heap_size(H)),
+    ?assert(is_empty(H)),
     ?assertThrow(empty_heap,delete_min(H)).
 
 delete_min_should_delete_min_element_test() ->
     H = min_heap([1,2,3,4]),
+    ?assertEqual(4, heap_size(H)),
+    ?assert(not is_empty(H)),
     ?assertEqual(2, find_min(delete_min(H))).
 
 delete_min_should_only_delete_one_element_test() ->
@@ -57,10 +62,14 @@ insert_should_add_a_heap_as_an_element_to_another_heap_test() ->
     H = min_heap([1]),
     Hnew = min_heap([2]),
     Hexp = min_heap([2,H]),
+    ?assertEqual(1, heap_size(H)),
+    ?assert(not is_empty(H)),
     ?assertEqual(Hexp, insert(H,Hnew)).
 
 to_list_should_return_empty_list_on_empty_heap_test() ->
     H = min_heap([]),
+    ?assertEqual(0, heap_size(H)),
+    ?assert(is_empty(H)),
     ?assertEqual([], to_list(H)).
 
 to_list_should_return_all_elements_of_heap_test() ->
