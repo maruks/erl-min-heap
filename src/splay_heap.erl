@@ -4,118 +4,133 @@
 
 -export([empty/1,from_list/2,find_min/1,delete_min/1,insert/2,min_heap/1,max_heap/1,to_list/1,heap_size/1,is_empty/1]).
 
+-record(node,{left :: undefined | #node{},
+	      elem :: any(),
+	      right :: undefined | #node{}}).
+
+-record(heap,{comparator = fun(A,B) -> A=<B end,
+	      size = 0 :: integer(),
+	      root :: undefined | #node{}}).
+
 %% types
 
 -type elem() :: any().
 
--type tree_node() :: empty
-		   | {tree_node(), elem(), tree_node()}.
-
--type cmp_fn() :: fun((elem(),elem())-> atom()).
-
--type splay_heap() :: {cmp_fn(), integer(), tree_node()}.
-
--spec empty(cmp_fn()) -> splay_heap().
--spec from_list(cmp_fn(), [elem()]) -> splay_heap().
--spec to_list(splay_heap()) -> [elem()].
--spec find_min(splay_heap()) -> elem().
--spec insert(elem(),splay_heap()) -> splay_heap().
--spec delete_min(splay_heap()) -> splay_heap().
--spec min_heap([integer()]) -> splay_heap().
--spec max_heap([integer()]) -> splay_heap().
+-type cmp_fn() :: fun((elem(),elem())-> boolean()).
 
 %% API
 
 % returns empty heap with specified comparison function
-empty(CmpFn) ->
-    {CmpFn, 0, empty}.
+-spec empty(cmp_fn()) -> #heap{size::0}.
+
+empty(Comparator) ->
+    #heap{comparator=Comparator}.
 
 % creates heap from list
-from_list(CmpFn, Xs) ->
-    lists:foldl(fun insert/2, empty(CmpFn), Xs).
+-spec from_list(cmp_fn(), [elem()]) -> #heap{}.
+
+from_list(Comparator, Xs) ->
+    lists:foldl(fun insert/2, empty(Comparator), Xs).
 
 % returns all elements as list
-to_list({_, _, Root}) ->
+-spec to_list(#heap{}) -> [elem()].
+
+to_list(#heap{root=Root}) ->
     to_list_(Root).
 
 % finds minimum element
-find_min({_, _, Root}) ->
+-spec find_min(#heap{}) -> elem().
+
+find_min(#heap{root=Root}) ->
     find_min_(Root).
 
 % inserts element into heap
-insert(E, {CmpFn, Size, Root}) ->
-    {CmpFn, Size + 1, insert_(E, CmpFn, Root)}.
+-spec insert(elem(),#heap{}) -> #heap{}.
+
+insert(Element, #heap{comparator=Comparator, size=Size, root=Root} = Heap) ->
+    Heap#heap{size = Size + 1, root = insert_(Element, Comparator, Root)}.
 
 % returns heap size
-heap_size({_, Size, _}) ->
+-spec heap_size(#heap{}) -> integer().
+
+heap_size(#heap{size=Size}) ->
     Size.
 
-is_empty({_, Size, _}) ->
+% returns true if heap is empty
+-spec is_empty(#heap{}) -> boolean().
+
+is_empty(#heap{size=Size}) ->
     Size =:= 0.
 
 % deletes min element
-delete_min({CmpFn, Size, Root}) ->
-    {CmpFn, Size - 1, delete_min_(Root)}.
+-spec delete_min(#heap{}) -> #heap{}.
+
+delete_min(#heap{size=Size, root=Root} = Heap) ->
+    Heap#heap{size=Size - 1, root=delete_min_(Root)}.
 
 % creates min heap
+-spec min_heap([integer()]) -> #heap{}.
+
 min_heap(Xs) ->
     from_list(fun(A,B) -> A=<B end,Xs).
 
 % creates max heap
+-spec max_heap([integer()]) -> #heap{}.
+
 max_heap(Xs) ->
     from_list(fun(A,B) -> A>=B end,Xs).
 
 %% Internals
 
-insert_(E, CmpFn, Node) ->
-    {LeftNode, RightNode} = partition(CmpFn, E, Node),
-    {LeftNode, E, RightNode}.
+insert_(Element, Comparator, Node) ->
+    {LeftNode, RightNode} = partition(Comparator, Element, Node),
+    #node{left=LeftNode, elem=Element, right=RightNode}.
 
-find_min_(empty) ->
+find_min_(undefined) ->
     throw(empty_heap);
-find_min_({empty, E, _R}) ->
-    E;
-find_min_({L , _E, _R}) ->
-    find_min_(L).
+find_min_(#node{left=undefined, elem=Elem}) ->
+    Elem;
+find_min_(#node{left=Left}) ->
+    find_min_(Left).
 
-to_list_({L, E, R}) ->
-    to_list_(L) ++ [E] ++ to_list_(R);
-to_list_(empty) ->
+to_list_(#node{left=Left, elem=Elem, right=Right}) ->
+    to_list_(Left) ++ [Elem] ++ to_list_(Right);
+to_list_(undefined) ->
     [].
 
-delete_min_(empty) ->
+delete_min_(undefined) ->
     throw(empty_heap);
-delete_min_({empty, _E, R}) ->
-    R;
-delete_min_({{empty, _, R1}, E, R2}) ->
-    {R1, E, R2};
-delete_min_({{L1, E1, R1}, E2, R2}) ->
-    delete_min_({L1, E1, {R1, E2, R2}}).
+delete_min_(#node{left=undefined, right=Right}) ->
+    Right;
+delete_min_(#node{left=#node{left=undefined, right=ChildRight}, right=Right} = Node) ->
+    Node#node{left=ChildRight, right=Right};
+delete_min_(#node{left=#node{right=ChildRight} = LeftChild} = Node) ->
+    delete_min_(LeftChild#node{right= Node#node{left=ChildRight}}).
 
-partition2(_, N = {_L, _E, empty}, _, true) ->
-    {N, empty};
-partition2(CmpFn, {L, E, {L2, E2, R2}}, Pivot, true) ->
-    LT = CmpFn(E2, Pivot),
+partition2(_, #node{right=undefined} = Node, _, true) ->
+    {Node, undefined};
+partition2(Comparator, #node{right=#node{left=ChildLeft, elem=ChildElem, right=ChildRight} = RightChild} = Node, Pivot, true) ->
+    LT = Comparator(ChildElem, Pivot),
     if LT ->
-	    {Small, Big} = partition(CmpFn, Pivot, R2),
-	    {{{L, E, L2}, E2, Small}, Big};
+	    {Small, Big} = partition(Comparator, Pivot, ChildRight),
+	    {#node{left=Node#node{right=ChildLeft}, elem=ChildElem, right=Small}, Big};
        true ->
-	    {Small, Big} = partition(CmpFn, Pivot, L2),
-	    {{L, E, Small},{Big, E2, R2}}
+	    {Small, Big} = partition(Comparator, Pivot, ChildLeft),
+	    {Node#node{right=Small}, RightChild#node{left=Big}}
     end;
-partition2(_ , N = {empty, _E, _R}, _, false) ->
-    {empty, N};
-partition2(CmpFn, {{L2, E2, R2}, E, R}, Pivot, false) ->
-    LT = CmpFn(E2, Pivot),
+partition2(_ , #node{left=undefined} = Node, _, false) ->
+    {undefined, Node};
+partition2(Comparator, #node{left=#node{left=ChildLeft, elem=ChildElem, right=ChildRight} = LeftChild} = Node, Pivot, false) ->
+    LT = Comparator(ChildElem, Pivot),
     if LT ->
-	    {Small, Big} = partition(CmpFn, Pivot, R2),
-	    {{L2, E2, Small},{Big, E, R}};
+	    {Small, Big} = partition(Comparator, Pivot, ChildRight),
+	    {LeftChild#node{right=Small}, Node#node{left=Big}};
        true ->
-	    {Small, Big} = partition(CmpFn, Pivot, L2),
-	    {Small, {Big, E2, {R2, E, R}}}
+	    {Small, Big} = partition(Comparator, Pivot, ChildLeft),
+	    {Small, #node{left=Big, elem=ChildElem, right=Node#node{left=ChildRight}}}
     end.
 
-partition(_, _Pivot, empty) ->
-    {empty, empty};
-partition(CmpFn, Pivot, N = {_L, E, _R}) ->
-    partition2(CmpFn, N, Pivot, CmpFn(E, Pivot)).
+partition(_, _, undefined) ->
+    {undefined, undefined};
+partition(Comparator, Pivot, #node{elem=Element} = Node) ->
+    partition2(Comparator, Node, Pivot, Comparator(Element, Pivot)).
