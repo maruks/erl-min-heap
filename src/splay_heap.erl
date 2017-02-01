@@ -69,13 +69,13 @@ delete_min(#heap{size=Size, root=Root} = Heap) ->
     Heap#heap{size=Size - 1, root=delete_min_(Root)}.
 
 % creates min heap
--spec min_heap([integer()]) -> #heap{}.
+-spec min_heap([any()]) -> #heap{}.
 
 min_heap(Xs) ->
     from_list(fun(A,B) -> A=<B end,Xs).
 
 % creates max heap
--spec max_heap([integer()]) -> #heap{}.
+-spec max_heap([any()]) -> #heap{}.
 
 max_heap(Xs) ->
     from_list(fun(A,B) -> A>=B end,Xs).
